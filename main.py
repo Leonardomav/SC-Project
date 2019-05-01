@@ -3,6 +3,9 @@
 # importance of the type of neighborhood considered (i.e., Moore, Von Neumann or other). Suppose that you introduce a
 # limit for the capacity of each cell to keep the wood sticks. What is the result? Suppose that we may
 
+
+# NOTES
+# high number gets ants stuck in one side
 import simcx
 import random
 import numpy as np
@@ -11,46 +14,90 @@ import pyglet
 
 class AntsAndSticks(simcx.Simulator):
 
-    def __init__(self, width=50, height=50, initial_ants=1):
+    def __init__(self, width=50, height=50, initial_ants=1, initial_sticks=1):
         super(AntsAndSticks, self).__init__()
 
         self.width = width
         self.height = height
         self.values = np.zeros((self.height, self.width))
         self.initial_ants = initial_ants
+        self.initial_sticks = initial_sticks
         self.dirty = False
 
         i = 0;
         while i < initial_ants:
             new_x = round(random.uniform(0, self.width - 1))
-
             new_y = round(random.uniform(0, self.height - 1))
             if self.values[new_x, new_y] == 0:
                 self.values[new_x, new_y] = 1
                 i = i + 1
 
+        i = 0;
+        while i < initial_sticks:
+            new_x = round(random.uniform(0, self.width - 1))
+            new_y = round(random.uniform(0, self.height - 1))
+            if self.values[new_x, new_y] == 0:
+                self.values[new_x, new_y] = 2
+                i = i + 1
+
+    def possible_moves(self, y, x):
+        moves = [0, 1, 2, 3]
+
+        new_y = y
+        if new_y + 1 == self.height:
+            new_y = -1
+        if self.values[new_y + 1, x] == 1:
+            moves.remove(0)
+
+        new_y = y
+        if new_y - 1 == -1:
+            new_y = self.height - 1
+        if self.values[new_y - 1, x] == 1:
+            moves.remove(1)
+
+        new_x = x
+        if new_x - 1 == -1:
+            new_x = self.width - 1
+        if self.values[y, new_x - 1] == 1:
+            moves.remove(2)
+
+        new_x = x
+        if new_x + 1 == self.width:
+            new_x = -1
+        if self.values[y, new_x + 1] == 1:
+            moves.remove(3)
+
+        return moves
+
     def movement_VonNeumann(self, y, x):
-        dir = random.randint(1, 4)
-        if dir == 1:  # Up
+        moves = self.possible_moves(y, x)
+
+        if len(moves) == 0:
+            self.values[y, x] = 1
+            return [y, x]
+
+        dir = random.choice(moves)
+        if dir == 0:  # Up
             if y + 1 == self.height:
                 y = -1
+
             self.values[y + 1, x] = 1
             return [y + 1, x]
 
-        elif dir == 2:  # Down
+        elif dir == 1:  # Down
             if y - 1 == -1:
                 y = self.height - 1
             self.values[y - 1, x] = 1
             return [y - 1, x]
 
-        elif dir == 3:  # Left
+        elif dir == 2:  # Left
             if x - 1 == -1:
                 x = self.width - 1
             self.values[y, x - 1] = 1
             return [y, x - 1]
 
-        else:  # Right
-            if x + 1 == self.height:
+        elif dir == 3:  # Right
+            if x + 1 == self.width:
                 x = -1
             self.values[y, x + 1] = 1
             return [y, x + 1]
@@ -64,15 +111,14 @@ class AntsAndSticks(simcx.Simulator):
                     moved.append(self.movement_VonNeumann(y, x))
                 elif [y, x] in moved:
                     self.values[y, x] = 1
-                else:
-                    self.values[y, x] = 0
+
 
         self.dirty = True
 
 
 class Grid2D(simcx.Visual):
-    QUAD_STICK = (255, 0, 0) * 4
-    QUAD_PILE = (0, 0, 255) * 4
+    QUAD_PILE = (255, 0, 0) * 4
+    QUAD_STICK = (0, 0, 255) * 4
     QUAD_ANT = (0, 0, 0) * 4
     QUAD_WHITE = (255, 255, 255) * 4
 
@@ -110,14 +156,17 @@ class Grid2D(simcx.Visual):
             for x in range(self._grid_width):
                 if self.sim.values[y, x] == 1:
                     self._grid[y][x].colors[:] = self.QUAD_ANT
+                elif self.sim.values[y, x] == 2.0:
+                    self._grid[y][x].colors[:] = self.QUAD_STICK
                 else:
+                    print(self.sim.values[y, x])
                     self._grid[y][x].colors[:] = self.QUAD_WHITE
 
 
 if __name__ == '__main__':
     # Example patterns
 
-    gol = AntsAndSticks(75, 75)
+    gol = AntsAndSticks(75, 75, 10, 10)
     vis = Grid2D(gol, 7)
 
     display = simcx.Display(interval=0.1)
