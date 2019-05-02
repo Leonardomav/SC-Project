@@ -12,6 +12,71 @@ import numpy as np
 import pyglet
 
 
+class Place:
+    def __init__(self, x, y, occupant):
+        self.x = x
+        self.y = y
+        self.occupant = occupant
+        self.neighbour = [None] * 4
+
+    def set_up(self, place):
+        self.neighbour[0] = place
+
+    def set_down(self, place):
+        self.neighbour[1] = place
+
+    def set_left(self, place):
+        self.neighbour[2] = place
+
+    def set_right(self, place):
+        self.neighbour[3] = place
+
+    def get_name(self):
+        if self.occupant == 0:
+            return "empty"
+        elif self.occupant.name == "ant":
+            return "ant"
+        elif self.occupant.name == "pile":
+            return "pile"
+
+        return 0
+
+    def get_moves(self):
+        moves = []
+        available_sticks = []
+        for i in range(4):
+            if self.neighbour[i].get_name() == "empty":
+                moves.append(i)
+            elif self.neighbour[i].get_name() == "pile" and self.neighbour[i].occupant.size == 1:
+                available_sticks.append(i)
+
+        return moves, available_sticks
+
+    def get_sticks(self):
+        moves = []
+        for i in range(4):
+            if self.neighbour[i].get_name() == "empty":
+                moves.append(i)
+
+        return moves
+
+
+class Ant:
+    def __init__(self, carrying, place):
+        self.name = "ant"
+        self.carrying = carrying
+        self.place = place
+
+
+class Pile:
+    def __init__(self, size, place):
+        self.name = "pile"
+        self.min = 2
+        self.max = 99999
+        self.size = size
+        self.place = place
+
+
 class AntsAndSticks(simcx.Simulator):
 
     def __init__(self, width=50, height=50, initial_ants=1, initial_sticks=1):
@@ -19,105 +84,129 @@ class AntsAndSticks(simcx.Simulator):
 
         self.width = width
         self.height = height
-        self.values = np.zeros((self.height, self.width))
+        self.values = [[Place(i, j, 0) for i in range(self.width)] for j in range(self.height)]
+        for x in range(self.width):
+            for y in range(self.height):
+
+                if x > 0:
+                    self.values[x - 1][y].set_right(self.values[x][y])
+                    self.values[x][y].set_left(self.values[x - 1][y])
+                if y > 0:
+                    self.values[x][y - 1].set_down(self.values[x][y])
+                    self.values[x][y].set_up(self.values[x][y - 1])
+                if x == self.width - 1:
+                    self.values[0][y].set_left(self.values[x][y])
+                    self.values[x][y].set_right(self.values[0][y])
+                if y == self.height - 1:
+                    self.values[x][0].set_up(self.values[x][y])
+                    self.values[x][y].set_down(self.values[x][0])
+
         self.initial_ants = initial_ants
         self.initial_sticks = initial_sticks
         self.dirty = False
 
-        i = 0;
+        i = 0
         while i < initial_ants:
             new_x = round(random.uniform(0, self.width - 1))
             new_y = round(random.uniform(0, self.height - 1))
-            if self.values[new_x, new_y] == 0:
-                self.values[new_x, new_y] = 1
+            if self.values[new_x][new_y].occupant == 0:
+                new_ant = Ant(0, self.values[new_x][new_y])
+                self.values[new_x][new_y].occupant = new_ant
                 i = i + 1
 
-        i = 0;
+        i = 0
         while i < initial_sticks:
             new_x = round(random.uniform(0, self.width - 1))
             new_y = round(random.uniform(0, self.height - 1))
-            if self.values[new_x, new_y] == 0:
-                self.values[new_x, new_y] = 2
+            if self.values[new_x][new_y].occupant == 0:
+                new_stick = Pile(1, self.values[new_x][new_y])
+                self.values[new_x][new_y].occupant = new_stick
                 i = i + 1
 
-    def possible_moves(self, y, x):
-        moves = [0, 1, 2, 3]
+    def movement_VonNeumann(self, y, x, ant):
+        moves, available_sticks = self.values[x][y].get_moves()
 
-        new_y = y
-        if new_y + 1 == self.height:
-            new_y = -1
-        if self.values[new_y + 1, x] == 1:
-            moves.remove(0)
+        if ant.carrying == 0 and len(available_sticks) > 0:
+            dir = random.choice(available_sticks)
+            ant.carrying = 1
+            self.values[x][y].occupant = ant
+            if dir == 0:  # Up
+                if y - 1 == -1:
+                    y = self.height
+                self.values[x][y - 1].occupant = 0
 
-        new_y = y
-        if new_y - 1 == -1:
-            new_y = self.height - 1
-        if self.values[new_y - 1, x] == 1:
-            moves.remove(1)
+            elif dir == 1:  # Down
+                if y + 1 == self.height:
+                    y = -1
+                self.values[x][y + 1].occupant = 0
 
-        new_x = x
-        if new_x - 1 == -1:
-            new_x = self.width - 1
-        if self.values[y, new_x - 1] == 1:
-            moves.remove(2)
+            elif dir == 2:  # Left
+                if x - 1 == -1:
+                    x = self.width
+                self.values[x - 1][y].occupant = 0
 
-        new_x = x
-        if new_x + 1 == self.width:
-            new_x = -1
-        if self.values[y, new_x + 1] == 1:
-            moves.remove(3)
+            elif dir == 3:  # Right
+                if x + 1 == self.width:
+                    x = -1
+                self.values[x + 1][y].occupant = 0
 
-        return moves
-
-    def movement_VonNeumann(self, y, x):
-        moves = self.possible_moves(y, x)
+            return [y, x]
 
         if len(moves) == 0:
-            self.values[y, x] = 1
+            self.values[x][y].occupant = ant
             return [y, x]
 
         dir = random.choice(moves)
-        if dir == 0:  # Up
-            if y + 1 == self.height:
-                y = -1
 
-            self.values[y + 1, x] = 1
-            return [y + 1, x]
+        if dir == 0:  # Up
+            if y - 1 == -1:
+                y = self.height
+            ant.place = self.values[x][y - 1]
+            self.values[x][y - 1].occupant = ant
+            return [y - 1, x]
 
         elif dir == 1:  # Down
-            if y - 1 == -1:
-                y = self.height - 1
-            self.values[y - 1, x] = 1
-            return [y - 1, x]
+            if y + 1 == self.height:
+                y = -1
+            ant.place = self.values[x][y + 1]
+            self.values[x][y + 1].occupant = ant
+            return [y + 1, x]
 
         elif dir == 2:  # Left
             if x - 1 == -1:
-                x = self.width - 1
-            self.values[y, x - 1] = 1
+                x = self.width
+
+            ant.place = self.values[x - 1][y]
+            self.values[x - 1][y].occupant = ant
             return [y, x - 1]
 
         elif dir == 3:  # Right
             if x + 1 == self.width:
                 x = -1
-            self.values[y, x + 1] = 1
+
+            ant.place = self.values[x + 1][y]
+            self.values[x + 1][y].occupant = ant
+
             return [y, x + 1]
 
     def step(self, delta=0):
         moved = []
-        for y in range(self.height):
-            for x in range(self.width):
-                if [y, x] not in moved and self.values[y, x] == 1:
-                    self.values[y, x] = 0
-                    moved.append(self.movement_VonNeumann(y, x))
-                elif [y, x] in moved:
-                    self.values[y, x] = 1
-
+        rand_x = list(range(0, self.height))
+        rand_y = list(range(0, self.width))
+        random.shuffle(rand_x)
+        random.shuffle(rand_y)
+        for y in rand_y:
+            for x in rand_x:
+                if [y, x] not in moved and self.values[x][y].get_name() == "ant":
+                    ant = self.values[x][y].occupant
+                    self.values[x][y].occupant = 0
+                    moved.append(self.movement_VonNeumann(y, x, ant))
 
         self.dirty = True
 
 
 class Grid2D(simcx.Visual):
-    QUAD_PILE = (255, 0, 0) * 4
+    QUAD_ANT_STICK = (255, 0, 0) * 4
     QUAD_STICK = (0, 0, 255) * 4
     QUAD_ANT = (0, 0, 0) * 4
     QUAD_WHITE = (255, 255, 255) * 4
@@ -154,19 +243,21 @@ class Grid2D(simcx.Visual):
     def _update_graphics(self):
         for y in range(self._grid_height):
             for x in range(self._grid_width):
-                if self.sim.values[y, x] == 1:
-                    self._grid[y][x].colors[:] = self.QUAD_ANT
-                elif self.sim.values[y, x] == 2.0:
+                if self.sim.values[x][y].get_name() == "ant":
+                    if self.sim.values[x][y].occupant.carrying == 1:
+                        self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
+                    else:
+                        self._grid[y][x].colors[:] = self.QUAD_ANT
+                elif self.sim.values[x][y].get_name() == "pile":
                     self._grid[y][x].colors[:] = self.QUAD_STICK
                 else:
-                    print(self.sim.values[y, x])
                     self._grid[y][x].colors[:] = self.QUAD_WHITE
 
 
 if __name__ == '__main__':
     # Example patterns
 
-    gol = AntsAndSticks(75, 75, 10, 10)
+    gol = AntsAndSticks(25, 25, 10, 10)
     vis = Grid2D(gol, 7)
 
     display = simcx.Display(interval=0.1)
