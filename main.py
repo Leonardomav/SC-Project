@@ -4,12 +4,19 @@
 # limit for the capacity of each cell to keep the wood sticks. What is the result? Suppose that we may
 
 
-# NOTES
-# high number gets ants stuck in one side
+# TODO
+# Moore neighborhood
+# Time comtabilization
+
+
 import simcx
 import random
 import numpy as np
 import pyglet
+
+MAX_PILE = 5
+MIN_STICK = 1
+MAX_STICK = 2
 
 
 class Place:
@@ -44,13 +51,16 @@ class Place:
     def get_moves(self):
         moves = []
         available_sticks = []
+        available_piles = []
         for i in range(4):
-            if self.neighbour[i].get_name() == "empty":
-                moves.append(i)
-            elif self.neighbour[i].get_name() == "pile" and self.neighbour[i].occupant.size == 1:
+            if self.neighbour[i].get_name() == "pile" and MAX_STICK >= self.neighbour[i].occupant.size >= MIN_STICK:
                 available_sticks.append(i)
+            if self.neighbour[i].get_name() == "pile" and MIN_STICK <= self.neighbour[i].occupant.size < MAX_PILE:
+                available_piles.append(i)
+            elif self.neighbour[i].get_name() == "empty":
+                moves.append(i)
 
-        return moves, available_sticks
+        return moves, available_sticks, available_piles
 
     def get_sticks(self):
         moves = []
@@ -62,17 +72,16 @@ class Place:
 
 
 class Ant:
-    def __init__(self, carrying, place):
+    def __init__(self, carrying, place, used):
         self.name = "ant"
         self.carrying = carrying
         self.place = place
+        self.used = used
 
 
 class Pile:
     def __init__(self, size, place):
         self.name = "pile"
-        self.min = 2
-        self.max = 99999
         self.size = size
         self.place = place
 
@@ -110,7 +119,7 @@ class AntsAndSticks(simcx.Simulator):
             new_x = round(random.uniform(0, self.width - 1))
             new_y = round(random.uniform(0, self.height - 1))
             if self.values[new_x][new_y].occupant == 0:
-                new_ant = Ant(0, self.values[new_x][new_y])
+                new_ant = Ant(0, self.values[new_x][new_y], 0)
                 self.values[new_x][new_y].occupant = new_ant
                 i = i + 1
 
@@ -124,34 +133,76 @@ class AntsAndSticks(simcx.Simulator):
                 i = i + 1
 
     def movement_VonNeumann(self, y, x, ant):
-        moves, available_sticks = self.values[x][y].get_moves()
+        moves, available_sticks, available_piles = self.values[x][y].get_moves()
 
-        if ant.carrying == 0 and len(available_sticks) > 0:
+        if ant.used == 0 and ant.carrying == 0 and len(available_sticks) > 0:
             dir = random.choice(available_sticks)
             ant.carrying = 1
+            ant.used = 1
             self.values[x][y].occupant = ant
             if dir == 0:  # Up
                 if y - 1 == -1:
                     y = self.height
-                self.values[x][y - 1].occupant = 0
+                if self.values[x][y - 1].occupant.size - 1 == 0:
+                    self.values[x][y - 1].occupant = 0
+                else:
+                    self.values[x][y - 1].occupant.size = self.values[x][y - 1].occupant.size - 1
 
             elif dir == 1:  # Down
                 if y + 1 == self.height:
                     y = -1
-                self.values[x][y + 1].occupant = 0
+                if self.values[x][y + 1].occupant.size - 1 == 0:
+                    self.values[x][y + 1].occupant = 0
+                else:
+                    self.values[x][y + 1].occupant.size = self.values[x][y + 1].occupant.size - 1
 
             elif dir == 2:  # Left
                 if x - 1 == -1:
                     x = self.width
-                self.values[x - 1][y].occupant = 0
+                if self.values[x - 1][y].occupant.size - 1 == 0:
+                    self.values[x - 1][y].occupant = 0
+                else:
+                    self.values[x - 1][y].occupant.size = self.values[x - 1][y].occupant.size - 1
 
             elif dir == 3:  # Right
                 if x + 1 == self.width:
                     x = -1
-                self.values[x + 1][y].occupant = 0
+                if self.values[x + 1][y].occupant.size - 1 == 0:
+                    self.values[x + 1][y].occupant = 0
+                else:
+                    self.values[x + 1][y].occupant.size = self.values[x + 1][y].occupant.size - 1
 
             return [y, x]
 
+        elif ant.used == 0 and ant.carrying == 1 and len(available_piles) > 0:
+            dir = random.choice(available_piles)
+            ant.used = 1
+            ant.carrying = 0
+            self.values[x][y].occupant = ant
+
+            if dir == 0:  # Up
+                if y - 1 == -1:
+                    y = self.height
+                self.values[x][y - 1].occupant.size = self.values[x][y - 1].occupant.size + 1
+
+            elif dir == 1:  # Down
+                if y + 1 == self.height:
+                    y = -1
+                self.values[x][y + 1].occupant.size = self.values[x][y + 1].occupant.size + 1
+
+            elif dir == 2:  # Left
+                if x - 1 == -1:
+                    x = self.width
+                self.values[x - 1][y].occupant.size = self.values[x - 1][y].occupant.size + 1
+
+            elif dir == 3:  # Right
+                if x + 1 == self.width:
+                    x = -1
+                self.values[x + 1][y].occupant.size = self.values[x + 1][y].occupant.size + 1
+
+            return [y, x]
+
+        ant.used = 0
         if len(moves) == 0:
             self.values[x][y].occupant = ant
             return [y, x]
@@ -206,9 +257,9 @@ class AntsAndSticks(simcx.Simulator):
 
 
 class Grid2D(simcx.Visual):
-    QUAD_ANT_STICK = (255, 0, 0) * 4
+    QUAD_ANT_STICK = (0, 0, 0) * 4
     QUAD_STICK = (0, 0, 255) * 4
-    QUAD_ANT = (0, 0, 0) * 4
+    QUAD_ANT = (155, 155, 155) * 4
     QUAD_WHITE = (255, 255, 255) * 4
 
     def __init__(self, sim: simcx.Simulator, cell_size=20):
@@ -249,7 +300,9 @@ class Grid2D(simcx.Visual):
                     else:
                         self._grid[y][x].colors[:] = self.QUAD_ANT
                 elif self.sim.values[x][y].get_name() == "pile":
-                    self._grid[y][x].colors[:] = self.QUAD_STICK
+                    color_gradient = self.sim.values[x][y].occupant.size * round(255 / MAX_PILE)
+                    QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
+                    self._grid[y][x].colors[:] = QUAD_STICK
                 else:
                     self._grid[y][x].colors[:] = self.QUAD_WHITE
 
@@ -257,10 +310,10 @@ class Grid2D(simcx.Visual):
 if __name__ == '__main__':
     # Example patterns
 
-    gol = AntsAndSticks(25, 25, 10, 10)
+    gol = AntsAndSticks(75, 75, 200, 300)
     vis = Grid2D(gol, 7)
 
-    display = simcx.Display(interval=0.1)
+    display = simcx.Display()
     display.add_simulator(gol)
     display.add_visual(vis)
 simcx.run()
