@@ -6,7 +6,8 @@
 
 # TODO
 # Moore neighborhood
-# Time comtabilization
+# Time contabilization
+# Frequency of ant per pixel
 
 
 import simcx
@@ -48,7 +49,7 @@ class Place:
 
         return 0
 
-    def get_moves(self):
+    def get_moves(self, neig):
         moves = []
         available_sticks = []
         available_piles = []
@@ -60,15 +61,26 @@ class Place:
             elif self.neighbour[i].get_name() == "empty":
                 moves.append(i)
 
+        if neig == 1:
+            for i in range(2):
+                if self.neighbour[i].neighbour[2].get_name() == "pile" and MAX_STICK >= self.neighbour[i].neighbour[
+                    2].occupant.size >= MIN_STICK:
+                    available_sticks.append(i + 4)
+                if self.neighbour[i].neighbour[2].get_name() == "pile" and MIN_STICK <= self.neighbour[i].neighbour[
+                    2].occupant.size < MAX_PILE:
+                    available_piles.append(i + 4)
+                elif self.neighbour[i].neighbour[2].get_name() == "empty":
+                    moves.append(i + 4)
+                if self.neighbour[i].neighbour[3].get_name() == "pile" and MAX_STICK >= self.neighbour[i].neighbour[
+                    3].occupant.size >= MIN_STICK:
+                    available_sticks.append(i + 6)
+                if self.neighbour[i].neighbour[3].get_name() == "pile" and MIN_STICK <= self.neighbour[i].neighbour[
+                    3].occupant.size < MAX_PILE:
+                    available_piles.append(i + 6)
+                elif self.neighbour[i].neighbour[3].get_name() == "empty":
+                    moves.append(i + 6)
+
         return moves, available_sticks, available_piles
-
-    def get_sticks(self):
-        moves = []
-        for i in range(4):
-            if self.neighbour[i].get_name() == "empty":
-                moves.append(i)
-
-        return moves
 
 
 class Ant:
@@ -132,14 +144,15 @@ class AntsAndSticks(simcx.Simulator):
                 self.values[new_x][new_y].occupant = new_stick
                 i = i + 1
 
-    def movement_VonNeumann(self, y, x, ant):
-        moves, available_sticks, available_piles = self.values[x][y].get_moves()
+    def movement_VonNeumann(self, y, x, ant, moves_neig):
+        moves, available_sticks, available_piles = self.values[x][y].get_moves(moves_neig)
 
         if ant.used == 0 and ant.carrying == 0 and len(available_sticks) > 0:
             dir = random.choice(available_sticks)
             ant.carrying = 1
             ant.used = 1
             self.values[x][y].occupant = ant
+
             if dir == 0:  # Up
                 if y - 1 == -1:
                     y = self.height
@@ -203,6 +216,7 @@ class AntsAndSticks(simcx.Simulator):
             return [y, x]
 
         ant.used = 0
+
         if len(moves) == 0:
             self.values[x][y].occupant = ant
             return [y, x]
@@ -240,6 +254,232 @@ class AntsAndSticks(simcx.Simulator):
 
             return [y, x + 1]
 
+    def movement_Moore(self, y, x, ant, moves_neig):
+        moves, available_sticks, available_piles = self.values[x][y].get_moves(moves_neig)
+
+        if ant.used == 0 and ant.carrying == 0 and len(available_sticks) > 0:
+            dir = random.choice(available_sticks)
+            ant.carrying = 1
+            ant.used = 1
+            self.values[x][y].occupant = ant
+
+            if dir == 0:  # Up
+                if y - 1 == -1:
+                    y = self.height
+                if self.values[x][y - 1].occupant.size - 1 == 0:
+                    self.values[x][y - 1].occupant = 0
+                else:
+                    self.values[x][y - 1].occupant.size = self.values[x][y - 1].occupant.size - 1
+
+            elif dir == 1:  # Down
+                if y + 1 == self.height:
+                    y = -1
+                if self.values[x][y + 1].occupant.size - 1 == 0:
+                    self.values[x][y + 1].occupant = 0
+                else:
+                    self.values[x][y + 1].occupant.size = self.values[x][y + 1].occupant.size - 1
+
+            elif dir == 2:  # Left
+                if x - 1 == -1:
+                    x = self.width
+                if self.values[x - 1][y].occupant.size - 1 == 0:
+                    self.values[x - 1][y].occupant = 0
+                else:
+                    self.values[x - 1][y].occupant.size = self.values[x - 1][y].occupant.size - 1
+
+            elif dir == 3:  # Right
+                if x + 1 == self.width:
+                    x = -1
+                if self.values[x + 1][y].occupant.size - 1 == 0:
+                    self.values[x + 1][y].occupant = 0
+                else:
+                    self.values[x + 1][y].occupant.size = self.values[x + 1][y].occupant.size - 1
+
+            elif dir == 4:  # up left
+                if y - 1 == -1:
+                    y = self.height
+                if x - 1 == -1:
+                    x = self.width
+
+                if self.values[x - 1][y - 1].occupant.size - 1 == 0:
+                    self.values[x - 1][y - 1].occupant = 0
+                else:
+                    self.values[x - 1][y - 1].occupant.size = self.values[x - 1][y - 1].occupant.size - 1
+
+            elif dir == 5:  # down left
+                if y + 1 == self.height:
+                    y = -1
+                if x - 1 == -1:
+                    x = self.width
+
+                if self.values[x - 1][y + 1].occupant.size - 1 == 0:
+                    self.values[x - 1][y + 1].occupant = 0
+                else:
+                    self.values[x - 1][y + 1].occupant.size = self.values[x - 1][y + 1].occupant.size - 1
+
+            elif dir == 6:  # up Right
+                if y - 1 == -1:
+                    y = self.height
+                if x + 1 == self.width:
+                    x = -1
+                if self.values[x + 1][y - 1].occupant.size - 1 == 0:
+                    self.values[x + 1][y - 1].occupant = 0
+                else:
+                    self.values[x + 1][y - 1].occupant.size = self.values[x + 1][y - 1].occupant.size - 1
+
+            elif dir == 7:  # down Right
+                if y + 1 == self.height:
+                    y = -1
+                if x + 1 == self.width:
+                    x = -1
+                if self.values[x + 1][y + 1].occupant.size - 1 == 0:
+                    self.values[x + 1][y + 1].occupant = 0
+                else:
+                    self.values[x + 1][y + 1].occupant.size = self.values[x + 1][y + 1].occupant.size - 1
+
+            return [y, x]
+
+        elif ant.used == 0 and ant.carrying == 1 and len(available_piles) > 0:
+            dir = random.choice(available_piles)
+            ant.used = 1
+            ant.carrying = 0
+            self.values[x][y].occupant = ant
+
+            if dir == 0:  # Up
+                if y - 1 == -1:
+                    y = self.height
+                self.values[x][y - 1].occupant.size = self.values[x][y - 1].occupant.size + 1
+
+            elif dir == 1:  # Down
+                if y + 1 == self.height:
+                    y = -1
+                self.values[x][y + 1].occupant.size = self.values[x][y + 1].occupant.size + 1
+
+            elif dir == 2:  # Left
+                if x - 1 == -1:
+                    x = self.width
+                self.values[x - 1][y].occupant.size = self.values[x - 1][y].occupant.size + 1
+
+            elif dir == 3:  # Right
+                if x + 1 == self.width:
+                    x = -1
+                self.values[x + 1][y].occupant.size = self.values[x + 1][y].occupant.size + 1
+
+            elif dir == 4:  # up left
+                if y - 1 == -1:
+                    y = self.height
+                if x - 1 == -1:
+                    x = self.width
+
+                self.values[x - 1][y - 1].occupant.size = self.values[x - 1][y - 1].occupant.size + 1
+
+            elif dir == 5:  # down left
+                if y + 1 == self.height:
+                    y = -1
+                if x - 1 == -1:
+                    x = self.width
+
+                self.values[x - 1][y + 1].occupant.size = self.values[x - 1][y + 1].occupant.size + 1
+
+            elif dir == 6:  # up Right
+                if y - 1 == -1:
+                    y = self.height
+                if x + 1 == self.width:
+                    x = -1
+                self.values[x + 1][y - 1].occupant.size = self.values[x + 1][y - 1].occupant.size + 1
+
+            elif dir == 7:  # down Right
+                if y + 1 == self.height:
+                    y = -1
+                if x + 1 == self.width:
+                    x = -1
+                self.values[x + 1][y + 1].occupant.size = self.values[x + 1][y + 1].occupant.size + 1
+
+            return [y, x]
+
+        ant.used = 0
+
+        if len(moves) == 0:
+            self.values[x][y].occupant = ant
+            return [y, x]
+
+        dir = random.choice(moves)
+
+        if dir == 0:  # Up
+            if y - 1 == -1:
+                y = self.height
+            ant.place = self.values[x][y - 1]
+            self.values[x][y - 1].occupant = ant
+            return [y - 1, x]
+
+        elif dir == 1:  # Down
+            if y + 1 == self.height:
+                y = -1
+            ant.place = self.values[x][y + 1]
+            self.values[x][y + 1].occupant = ant
+            return [y + 1, x]
+
+        elif dir == 2:  # Left
+            if x - 1 == -1:
+                x = self.width
+
+            ant.place = self.values[x - 1][y]
+            self.values[x - 1][y].occupant = ant
+            return [y, x - 1]
+
+        elif dir == 3:  # Right
+            if x + 1 == self.width:
+                x = -1
+
+            ant.place = self.values[x + 1][y]
+            self.values[x + 1][y].occupant = ant
+
+            return [y, x + 1]
+
+        elif dir == 4:  # up left
+            if y - 1 == -1:
+                y = self.height
+            if x - 1 == -1:
+                x = self.width
+
+            ant.place = self.values[x - 1][y - 1]
+            self.values[x - 1][y - 1].occupant = ant
+
+            return [y - 1, x - 1]
+
+        elif dir == 5:  # down left
+            if y + 1 == self.height:
+                y = -1
+            if x - 1 == -1:
+                x = self.width
+
+            ant.place = self.values[x - 1][y + 1]
+            self.values[x - 1][y + 1].occupant = ant
+
+            return [y + 1, x - 1]
+
+        elif dir == 6:  # up Right
+            if y - 1 == -1:
+                y = self.height
+            if x + 1 == self.width:
+                x = -1
+
+            ant.place = self.values[x + 1][y - 1]
+            self.values[x + 1][y - 1].occupant = ant
+
+            return [y - 1, x + 1]
+
+        elif dir == 7:  # down Right
+            if y + 1 == self.height:
+                y = -1
+            if x + 1 == self.width:
+                x = -1
+
+            ant.place = self.values[x + 1][y + 1]
+            self.values[x + 1][y + 1].occupant = ant
+
+            return [y + 1, x + 1]
+
     def step(self, delta=0):
         moved = []
         rand_x = list(range(0, self.height))
@@ -251,14 +491,13 @@ class AntsAndSticks(simcx.Simulator):
                 if [y, x] not in moved and self.values[x][y].get_name() == "ant":
                     ant = self.values[x][y].occupant
                     self.values[x][y].occupant = 0
-                    moved.append(self.movement_VonNeumann(y, x, ant))
+                    moved.append(self.movement_Moore(y, x, ant, 1))
 
         self.dirty = True
 
 
 class Grid2D(simcx.Visual):
     QUAD_ANT_STICK = (0, 0, 0) * 4
-    QUAD_STICK = (0, 0, 255) * 4
     QUAD_ANT = (155, 155, 155) * 4
     QUAD_WHITE = (255, 255, 255) * 4
 
@@ -308,12 +547,10 @@ class Grid2D(simcx.Visual):
 
 
 if __name__ == '__main__':
-    # Example patterns
-
-    gol = AntsAndSticks(75, 75, 200, 300)
-    vis = Grid2D(gol, 7)
+    aas = AntsAndSticks(75, 75, 500, 500)
+    vis = Grid2D(aas, 7)
 
     display = simcx.Display()
-    display.add_simulator(gol)
+    display.add_simulator(aas)
     display.add_visual(vis)
 simcx.run()
