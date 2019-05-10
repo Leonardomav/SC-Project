@@ -481,19 +481,30 @@ class AntsAndSticks(simcx.Simulator):
             return [y + 1, x + 1]
 
     def step(self, delta=0):
-        moved = []
-        rand_x = list(range(0, self.height))
-        rand_y = list(range(0, self.width))
-        random.shuffle(rand_x)
-        random.shuffle(rand_y)
-        for y in rand_y:
-            for x in rand_x:
-                if [y, x] not in moved and self.values[x][y].get_name() == "ant":
-                    ant = self.values[x][y].occupant
-                    self.values[x][y].occupant = 0
-                    moved.append(self.movement_Moore(y, x, ant, 1))
 
-        self.dirty = True
+        available_sticks = 0
+        for x in range(self.width):
+            for y in range(self.height):
+                if self.values[x][y].get_name() == "pile" and MAX_STICK >= self.values[x][y].occupant.size >= MIN_STICK:
+                    available_sticks = available_sticks + 1
+
+        if available_sticks > 0:
+            moved = []
+            rand_x = list(range(0, self.height))
+            rand_y = list(range(0, self.width))
+            random.shuffle(rand_x)
+            random.shuffle(rand_y)
+            for y in rand_y:
+                for x in rand_x:
+                    if [y, x] not in moved and self.values[x][y].get_name() == "ant":
+                        ant = self.values[x][y].occupant
+                        self.values[x][y].occupant = 0
+                        moved.append(self.movement_Moore(y, x, ant, 1))
+
+            self.dirty = True
+
+        else:
+            self.dirty = False
 
 
 class Grid2D(simcx.Visual):
