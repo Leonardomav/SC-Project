@@ -3,18 +3,10 @@
 # importance of the type of neighborhood considered (i.e., Moore, Von Neumann or other). Suppose that you introduce a
 # limit for the capacity of each cell to keep the wood sticks. What is the result? Suppose that we may
 
-
-# TODO
-# Time contabilization
-# Frequency of ant per pixel
-#
-
-
 import simcx
 import random
 import pyglet
 import os
-from math import ceil
 
 MAX_PILE = 5
 MIN_STICK = 1
@@ -29,6 +21,8 @@ class Place:
         self.occupant = occupant
         self.neighbour = [None] * 4
         self.pher_level = 0
+        self.trail = 0
+        self.freq = 0
 
     def set_up(self, place):
         self.neighbour[0] = place
@@ -136,6 +130,8 @@ class AntsAndSticks(simcx.Simulator):
         self.pickType = pickType
         self.width = width
         self.height = height
+        self.pheromone = pheromone
+        self.backwards = backwards
 
         # create world
         self.values = [[Place(i, j, 0) for i in range(self.width)] for j in range(self.height)]
@@ -215,6 +211,28 @@ class AntsAndSticks(simcx.Simulator):
                             new_stick = Pile(1, self.values[new_x][new_y])
                             self.values[new_x][new_y].occupant = new_stick
                             i = i + 1
+
+        # predefined spots
+
+        # spots = [[x0, y0],[x1,y1]....]
+        # i = 0
+        # while i < n:
+        #     new_x = spots[i][0]
+        #     new_y = spots[i][1]
+        #     if self.values[new_x][new_y].occupant == 0:
+        #         new_ant = Ant(0, self.values[new_x][new_y], 0)
+        #         self.values[new_x][new_y].occupant = new_ant
+        #         i = i + 1
+
+        # spots = [[x0, y0],[x1,y1]....]
+        # i = 0
+        # while i < n:
+        #     new_x = spots[i][0]
+        #     new_y = spots[i][1]
+        #     if self.values[new_x][new_y].occupant == 0:
+        #         new_stick = Pile(1, self.values[new_x][new_y])
+        #         self.values[new_x][new_y].occupant = new_stick
+        #         i = i + 1
 
     def check_pher(self, moves, x, y):
         random.shuffle(moves)
@@ -301,8 +319,8 @@ class AntsAndSticks(simcx.Simulator):
 
         return dir
 
-    def movement(self, y, x, ant, moves_neig, pick_neig, backwards, pheromone):
-        moves, available_sticks, available_piles = self.values[x][y].get_moves(moves_neig, pick_neig, ant, backwards)
+    def movement(self, y, x, ant, moves_neig, pick_neig):
+        moves, available_sticks, available_piles = self.values[x][y].get_moves(moves_neig, pick_neig, ant, self.backwards)
 
         if ant.used == 0 and ant.carrying == 0 and len(available_sticks) > 0:
             dir = random.choice(available_sticks)
@@ -450,7 +468,7 @@ class AntsAndSticks(simcx.Simulator):
             self.values[x][y].occupant = ant
             return [y, x]
 
-        if pheromone == 0:
+        if self.pheromone == 0:
             dir = random.choice(moves)
         else:
             dir = self.check_pher(moves, x, y)
@@ -535,6 +553,7 @@ class AntsAndSticks(simcx.Simulator):
     def step(self, delta=0):
         global step_count
         step_count = step_count + 1
+        available_piles = 0
         available_sticks = 0
         carrying_ants = 0
         for x in range(self.width):
@@ -545,13 +564,16 @@ class AntsAndSticks(simcx.Simulator):
                         new_pher = 0
                     self.values[x][y].pher_level = new_pher
 
-                if self.values[x][y].get_name() == "pile" and MAX_STICK >= self.values[x][y].occupant.size < MAX_PILE:
+                if self.values[x][y].get_name() == "pile" and MAX_STICK >= self.values[x][y].occupant.size:
                     available_sticks = available_sticks + 1
 
-                # if self.values[x][y].get_name() == "ant" and self.values[x][y].occupant.carrying == 1:
-                #    carrying_ants = carrying_ants + 1
+                if self.values[x][y].get_name() == "pile" and MAX_STICK < self.values[x][y].occupant.size < MAX_PILE:
+                    available_piles = available_piles + 1
 
-        if available_sticks > 0 or carrying_ants == self.initial_ants or step_count == 1000:
+                if self.values[x][y].get_name() == "ant" and self.values[x][y].occupant.carrying == 1:
+                    carrying_ants = carrying_ants + 1
+
+        if (available_sticks > 0 or (available_piles > 0 and carrying_ants > 0)) or step_count == 1000:
             moved = []
             rand_x = list(range(0, self.height))
             rand_y = list(range(0, self.width))
@@ -562,23 +584,28 @@ class AntsAndSticks(simcx.Simulator):
                     if [y, x] not in moved and self.values[x][y].get_name() == "ant":
                         ant = self.values[x][y].occupant
                         self.values[x][y].occupant = 0
-                        # set pheromon
-                        if pheromone == 1 or (pheromone == 2 and ant.carrying == 1):
+                        # set pheromone
+                        if self.pheromone == 1 or (self.pheromone == 2 and ant.carrying == 1):
                             self.values[x][y].pher_level = 255
+
+                        if ant.carrying == 1:
+                            self.values[x][y].trail = 255
+
+                        self.values[x][y].freq += 2
 
                         if self.moveType == "moore":
                             if self.pickType == "moore":
-                                moved.append(self.movement(y, x, ant, 1, 1, backwards, pheromone))
+                                moved.append(self.movement(y, x, ant, 1, 1))
 
                             elif self.pickType == "von":
-                                moved.append(self.movement(y, x, ant, 1, 0, backwards, pheromone))
+                                moved.append(self.movement(y, x, ant, 1, 0))
 
                         elif self.moveType == "von":
                             if self.pickType == "moore":
-                                moved.append(self.movement(y, x, ant, 0, 1, backwards, pheromone))
+                                moved.append(self.movement(y, x, ant, 0, 1))
 
                             elif self.pickType == "von":
-                                moved.append(self.movement(y, x, ant, 0, 0, backwards, pheromone))
+                                moved.append(self.movement(y, x, ant, 0, 0))
 
             self.dirty = True
 
@@ -608,12 +635,14 @@ class AntsAndSticks(simcx.Simulator):
 
 class Grid2D(simcx.Visual):
     QUAD_ANT_STICK = (0, 0, 0) * 4
-    QUAD_ANT = (155, 155, 155) * 4
+    QUAD_ANT = (0, 155, 155) * 4
     QUAD_WHITE = (255, 255, 255) * 4
 
-    def __init__(self, sim: simcx.Simulator, cell_size=20):
+    def __init__(self, sim: simcx.Simulator, cell_size=20, pheromone=0, trail=0, freq=0):
         super(Grid2D, self).__init__(sim, width=sim.width * cell_size, height=sim.height * cell_size)
-
+        self.pheromone = pheromone
+        self.trail = trail
+        self.freq = freq
         self._grid_width = sim.width
         self._grid_height = sim.height
 
@@ -643,7 +672,14 @@ class Grid2D(simcx.Visual):
     def _update_graphics(self):
         for y in range(self._grid_height):
             for x in range(self._grid_width):
-                self._grid[y][x].colors[:] = (self.sim.values[x][y].pher_level, 0, 0) * 4
+                if self.pheromone == 1:
+                    self._grid[y][x].colors[:] = (self.sim.values[x][y].pher_level, 0, self.sim.values[x][y].pher_level) * 4
+                if self.trail == 1:
+                    self._grid[y][x].colors[:] = (self.sim.values[x][y].trail, self.sim.values[x][y].trail // 2, 0) * 4
+                if self.freq == 1:
+                    fcolor = self.sim.values[x][y].freq
+                    self._grid[y][x].colors[:] = (255 - fcolor, 255 - fcolor, 255 - fcolor) * 4
+
                 if self.sim.values[x][y].get_name() == "ant":
                     if self.sim.values[x][y].occupant.carrying == 1:
                         self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
@@ -653,25 +689,32 @@ class Grid2D(simcx.Visual):
                     color_gradient = self.sim.values[x][y].occupant.size * round(255 / MAX_PILE)
                     QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
                     self._grid[y][x].colors[:] = QUAD_STICK
-                elif self.sim.values[x][y].pher_level == 0:
+
+                elif self.pheromone == 1 and self.sim.values[x][y].pher_level == 0:
+                    self._grid[y][x].colors[:] = self.QUAD_WHITE
+
+                elif self.trail == 1 and self.sim.values[x][y].trail == 0:
+                    self._grid[y][x].colors[:] = self.QUAD_WHITE
+
+                elif self.freq == 1 and self.sim.values[x][y].freq == 0:
                     self._grid[y][x].colors[:] = self.QUAD_WHITE
 
 
 if __name__ == '__main__':
     move_type = "von"
     pick_type = "von"
-    map_x = 60
-    map_y = 60
-    initial_ants = 5
-    initial_sticks = 10
+    map_x = 30
+    map_y = 30
+    initial_ants = 30
+    initial_sticks = 50
     backwards = 0  # 1-> can go backwards || 0 -> cannot go backwards
     warp = 1  # 1-> map warps || 0 -> map does not warp
-    # zones = None
-    zones = [[0, 0, 0, 0, 0, 0, 20, 0, 0], [0, 0, 20, 0, 0, 0, 0, 0, 0]]
+    zones = None
+    # zones = [[0, 0, 0, 0, 0, 0, 20, 0, 0], [0, 0, 20, 0, 0, 0, 0, 0, 0]]
     pheromone = 2  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
-    vis = Grid2D(aas, 5)
+    vis = Grid2D(aas, 5, trail=0, pheromone=0, freq=1)
 
     display = simcx.Display(interval=0.1)
     display.add_simulator(aas)
