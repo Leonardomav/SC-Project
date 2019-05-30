@@ -132,6 +132,7 @@ class AntsAndSticks(simcx.Simulator):
         self.height = height
         self.pheromone = pheromone
         self.backwards = backwards
+        self.warp = warp
 
         # create world
         self.values = [[Place(i, j, 0) for i in range(self.width)] for j in range(self.height)]
@@ -554,7 +555,10 @@ class AntsAndSticks(simcx.Simulator):
         global step_count
         step_count = step_count + 1
         available_piles = 0
+        total_piles = 0
         available_sticks = 0
+        full_piles = 0
+        size_of_pile_average = 0
         carrying_ants = 0
         for x in range(self.width):
             for y in range(self.height):
@@ -569,9 +573,34 @@ class AntsAndSticks(simcx.Simulator):
 
                 if self.values[x][y].get_name() == "pile" and MAX_STICK < self.values[x][y].occupant.size < MAX_PILE:
                     available_piles = available_piles + 1
+                    size_of_pile_average = size_of_pile_average + self.values[x][y].occupant.size
+                    total_piles = total_piles + 1
+
+                if self.values[x][y].get_name() == "pile" and self.values[x][y].occupant.size == MAX_PILE:
+                    size_of_pile_average = size_of_pile_average + self.values[x][y].occupant.size
+                    total_piles = total_piles + 1
 
                 if self.values[x][y].get_name() == "ant" and self.values[x][y].occupant.carrying == 1:
                     carrying_ants = carrying_ants + 1
+
+        #Cena para o excel bro
+        total_piles = full_piles + available_piles
+
+        if total_piles == 0:
+            size_of_pile_average = 0
+        else:
+
+            size_of_pile_average = size_of_pile_average / total_piles
+
+        print(size_of_pile_average)
+        filename = str(self.moveType) + "," + str(self.pickType) + "," + str(self.width) + "," + str(self.height) + "," + str(self.initial_ants) + "," + str(self.initial_sticks) + "," + str(self.backwards) + "," + str(self.warp) + "," + str(self.pheromone) + ".csv"
+
+        file = open(filename, mode = "a")
+        line = str(step_count) + "," + str(available_sticks) + "," + str(total_piles) + "," + str(size_of_pile_average) + "," + str(carrying_ants)
+        file.write(line)
+        file.write('\n')
+        file.close()
+
 
         if (available_sticks > 0 or (available_piles > 0 and carrying_ants > 0)) or step_count == 1000:
             moved = []
@@ -610,26 +639,6 @@ class AntsAndSticks(simcx.Simulator):
             self.dirty = True
 
         else:
-            average_size = 0
-            n_piles = 0
-            for x in range(self.width):
-                for y in range(self.height):
-                    if self.values[x][y].get_name() == "pile":
-                        n_piles = n_piles + 1
-                    if self.values[x][y].get_name() == "ant" and self.values[x][y].occupant.carrying == 1:
-                        carrying_ants = carrying_ants + 1
-
-            for x in range(self.width):
-                for y in range(self.height):
-                    if self.values[x][y].get_name() == "pile":
-                        average_size = average_size + self.values[x][y].occupant.size
-            if n_piles != 0:
-                print("average pile size -> " + str(average_size / n_piles))
-            else:
-                print("average pile size -> 0")
-            print("number of steps -> " + str(step_count))
-            print("number of ants carrying sticks -> " + str(carrying_ants))
-            print("number of piles in the last instance -> " + str(n_piles))
             os.system("pause")
 
 
