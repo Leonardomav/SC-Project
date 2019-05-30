@@ -250,7 +250,7 @@ class AntsAndSticks(simcx.Simulator):
                 this_y = y
                 if this_y + 1 == self.height:
                     this_y = -1
-                if self.values[x][this_y + 1].pher_level > 0 or random.random() < 0.1:
+                if self.values[x][this_y + 1].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -259,7 +259,7 @@ class AntsAndSticks(simcx.Simulator):
                 if this_x - 1 == -1:
                     this_x = self.width
 
-                if self.values[this_x - 1][y].pher_level > 0 or random.random() < 0.1:
+                if self.values[this_x - 1][y].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -267,7 +267,7 @@ class AntsAndSticks(simcx.Simulator):
                 this_x = x
                 if this_x + 1 == self.width:
                     this_x = -1
-                if self.values[this_x + 1][y].pher_level > 0 or random.random() < 0.1:
+                if self.values[this_x + 1][y].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -278,7 +278,7 @@ class AntsAndSticks(simcx.Simulator):
                     this_y = self.height
                 if this_x - 1 == -1:
                     this_x = self.width
-                if self.values[this_x - 1][this_y - 1].pher_level > 0 or random.random() < 0.1:
+                if self.values[this_x - 1][this_y - 1].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -289,7 +289,7 @@ class AntsAndSticks(simcx.Simulator):
                     this_y = -1
                 if this_x - 1 == -1:
                     this_x = self.width
-                if self.values[this_x - 1][this_y + 1].pher_level > 0 or random.random() < 0.1:
+                if self.values[this_x - 1][this_y + 1].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -300,7 +300,7 @@ class AntsAndSticks(simcx.Simulator):
                     this_y = self.height
                 if this_x + 1 == self.width:
                     this_x = -1
-                if self.values[this_x + 1][this_y - 1].pher_level > 0 or random.random() < 0.1:
+                if self.values[this_x + 1][this_y - 1].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -311,7 +311,7 @@ class AntsAndSticks(simcx.Simulator):
                     this_y = -1
                 if this_x + 1 == self.width:
                     this_x = -1
-                if self.values[this_x + 1][this_y + 1].pher_level > 0 or random.random() < 0.1:
+                if self.values[this_x + 1][this_y + 1].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -785,7 +785,7 @@ if __name__ == '__main__':
     warp = 0  # 1-> map warps || 0 -> map does not warp
     zones = None
     # zones = [[0, 0, 0, 0, 0, 0, 20, 0, 0], [0, 0, 20, 0, 0, 0, 0, 0, 0]]
-    pheromone = 0  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
+    pheromone = 2  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
     vis = Grid2D(aas, 5, trail=1, pheromone=0, freq=0)
