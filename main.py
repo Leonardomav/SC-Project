@@ -242,7 +242,7 @@ class AntsAndSticks(simcx.Simulator):
                 this_y = y
                 if this_y - 1 == -1:
                     this_y = self.height
-                if self.values[x][this_y - 1].pher_level > 0 or random.random() < 0.1:
+                if self.values[x][this_y - 1].pher_level > 0 or random.random() < 0.2:
                     dir = moves[i]
                     break
 
@@ -571,25 +571,21 @@ class AntsAndSticks(simcx.Simulator):
                 if self.values[x][y].get_name() == "pile" and MAX_STICK >= self.values[x][y].occupant.size:
                     available_sticks = available_sticks + 1
 
-                if self.values[x][y].get_name() == "pile" and MAX_STICK < self.values[x][y].occupant.size < MAX_PILE:
+                elif self.values[x][y].get_name() == "pile" and MAX_STICK < self.values[x][y].occupant.size < MAX_PILE:
                     available_piles = available_piles + 1
                     size_of_pile_average = size_of_pile_average + self.values[x][y].occupant.size
                     total_piles = total_piles + 1
 
-                if self.values[x][y].get_name() == "pile" and self.values[x][y].occupant.size == MAX_PILE:
+                elif self.values[x][y].get_name() == "pile" and self.values[x][y].occupant.size == MAX_PILE:
                     size_of_pile_average = size_of_pile_average + self.values[x][y].occupant.size
                     total_piles = total_piles + 1
 
                 if self.values[x][y].get_name() == "ant" and self.values[x][y].occupant.carrying == 1:
                     carrying_ants = carrying_ants + 1
 
-        # Cena para o excel bro
-        total_piles = full_piles + available_piles
-
         if total_piles == 0:
             size_of_pile_average = 0
         else:
-
             size_of_pile_average = size_of_pile_average / total_piles
 
         filename = str(self.moveType) + "," + str(self.pickType) + "," + str(self.width) + "," + str(self.height) + "," + str(
@@ -598,7 +594,7 @@ class AntsAndSticks(simcx.Simulator):
 
         file = open(filename, mode="a")
         line = str(step_count) + "," + str(available_sticks) + "," + str(total_piles) + "," + str(
-            size_of_pile_average) + "," + str(carrying_ants) + "," + str(MAX_STICK) + "," + str(MAX_PILE)
+            size_of_pile_average) + "," + str(carrying_ants)
         file.write(line)
         file.write('\n')
         file.close()
@@ -620,7 +616,7 @@ class AntsAndSticks(simcx.Simulator):
 
                         self.values[x][y].trail = 255
 
-                        self.values[x][y].freq += 2
+                        self.values[x][y].freq += 1
 
                         if self.moveType == "moore":
                             if self.pickType == "moore":
