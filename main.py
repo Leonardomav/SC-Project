@@ -698,6 +698,10 @@ class Grid2D(simcx.Visual):
 
                 elif self.freq == 1 and self.sim.values[x][y].freq == 0:
                     self._grid[y][x].colors[:] = self.QUAD_WHITE
+                else:
+                    self._grid[y][x].colors[:] = self.QUAD_WHITE
+
+
 
 
 if __name__ == '__main__':
@@ -706,7 +710,7 @@ if __name__ == '__main__':
     map_x = 30
     map_y = 30
     initial_ants = 30
-    initial_sticks = 50
+    initial_sticks = 30
     backwards = 0  # 1-> can go backwards || 0 -> cannot go backwards
     warp = 1  # 1-> map warps || 0 -> map does not warp
     zones = None
@@ -714,7 +718,7 @@ if __name__ == '__main__':
     pheromone = 2  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
-    vis = Grid2D(aas, 5, trail=0, pheromone=0, freq=1)
+    vis = Grid2D(aas, 5, trail=0, pheromone=0, freq=0)
 
     display = simcx.Display(interval=0.1)
     display.add_simulator(aas)
