@@ -583,7 +583,7 @@ class AntsAndSticks(simcx.Simulator):
                 if self.values[x][y].get_name() == "ant" and self.values[x][y].occupant.carrying == 1:
                     carrying_ants = carrying_ants + 1
 
-        #Cena para o excel bro
+        # Cena para o excel bro
         total_piles = full_piles + available_piles
 
         if total_piles == 0:
@@ -592,17 +592,18 @@ class AntsAndSticks(simcx.Simulator):
 
             size_of_pile_average = size_of_pile_average / total_piles
 
-        print(size_of_pile_average)
-        filename = str(self.moveType) + "," + str(self.pickType) + "," + str(self.width) + "," + str(self.height) + "," + str(self.initial_ants) + "," + str(self.initial_sticks) + "," + str(self.backwards) + "," + str(self.warp) + "," + str(self.pheromone) + ".csv"
+        filename = str(self.moveType) + "," + str(self.pickType) + "," + str(self.width) + "," + str(self.height) + "," + str(
+            self.initial_ants) + "," + str(self.initial_sticks) + "," + str(self.backwards) + "," + str(self.warp) + "," + str(
+            self.pheromone) + "," + str(MAX_STICK) + "," + str(MAX_PILE) + ".csv"
 
-        file = open(filename, mode = "a")
-        line = str(step_count) + "," + str(available_sticks) + "," + str(total_piles) + "," + str(size_of_pile_average) + "," + str(carrying_ants)
+        file = open(filename, mode="a")
+        line = str(step_count) + "," + str(available_sticks) + "," + str(total_piles) + "," + str(
+            size_of_pile_average) + "," + str(carrying_ants)
         file.write(line)
         file.write('\n')
         file.close()
 
-
-        if (available_sticks > 0 or (available_piles > 0 and carrying_ants > 0)) or step_count == 1000:
+        if (available_sticks > 0 or (available_piles > 0 and carrying_ants > 0)) and step_count < 5000:
             moved = []
             rand_x = list(range(0, self.height))
             rand_y = list(range(0, self.width))
@@ -617,8 +618,7 @@ class AntsAndSticks(simcx.Simulator):
                         if self.pheromone == 1 or (self.pheromone == 2 and ant.carrying == 1):
                             self.values[x][y].pher_level = 255
 
-                        if ant.carrying == 1:
-                            self.values[x][y].trail = 255
+                        self.values[x][y].trail = 255
 
                         self.values[x][y].freq += 2
 
@@ -648,12 +648,12 @@ class Grid2D(simcx.Visual):
     QUAD_WHITE = (255, 255, 255) * 4
 
     def __init__(self, sim: simcx.Simulator, cell_size=20, pheromone=0, trail=0, freq=0):
-        super(Grid2D, self).__init__(sim, width=sim.width * cell_size, height=sim.height * cell_size)
+        super(Grid2D, self).__init__(sim, width=sim.width * cell_size * 2, height=sim.height * cell_size * 2)
         self.pheromone = pheromone
         self.trail = trail
         self.freq = freq
-        self._grid_width = sim.width
-        self._grid_height = sim.height
+        self._grid_width = sim.width * 2
+        self._grid_height = sim.height * 2
 
         # create graphics objects
         self._batch = pyglet.graphics.Batch()
@@ -681,43 +681,108 @@ class Grid2D(simcx.Visual):
     def _update_graphics(self):
         for y in range(self._grid_height):
             for x in range(self._grid_width):
-                if self.pheromone == 1:
-                    self._grid[y][x].colors[:] = (self.sim.values[x][y].pher_level, 0, self.sim.values[x][y].pher_level) * 4
-                if self.trail == 1:
-                    self._grid[y][x].colors[:] = (self.sim.values[x][y].trail, self.sim.values[x][y].trail // 2, 0) * 4
-                if self.freq == 1:
-                    fcolor = self.sim.values[x][y].freq
-                    self._grid[y][x].colors[:] = (255 - fcolor, 255 - fcolor, 255 - fcolor) * 4
+                if y < self._grid_height / 2:
+                    if x < self._grid_width / 2:
+                        self._grid[y][x].colors[:] = (self.sim.values[x][y].trail, self.sim.values[x][y].trail // 2, 0) * 4
 
-                if self.sim.values[x][y].get_name() == "ant":
-                    if self.sim.values[x][y].occupant.carrying == 1:
-                        self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
+                        if self.sim.values[x][y].get_name() == "ant":
+                            if self.sim.values[x][y].occupant.carrying == 1:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
+                            else:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT
+                        elif self.sim.values[x][y].get_name() == "pile":
+                            color_gradient = self.sim.values[x][y].occupant.size * round(255 / MAX_PILE)
+                            QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
+                            self._grid[y][x].colors[:] = QUAD_STICK
+
+                        elif self.sim.values[x][y].trail == 0:
+                            self._grid[y][x].colors[:] = self.QUAD_WHITE
                     else:
-                        self._grid[y][x].colors[:] = self.QUAD_ANT
-                elif self.sim.values[x][y].get_name() == "pile":
-                    color_gradient = self.sim.values[x][y].occupant.size * round(255 / MAX_PILE)
-                    QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
-                    self._grid[y][x].colors[:] = QUAD_STICK
+                        fcolor = self.sim.values[x - self._grid_width][y].freq
+                        self._grid[y][x].colors[:] = (255 - fcolor, 255 - fcolor, 255 - fcolor) * 4
 
-                elif self.pheromone == 1 and self.sim.values[x][y].pher_level == 0:
-                    self._grid[y][x].colors[:] = self.QUAD_WHITE
+                        if self.sim.values[x - self._grid_width][y].get_name() == "ant":
+                            if self.sim.values[x - self._grid_width][y].occupant.carrying == 1:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
+                            else:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT
+                        elif self.sim.values[x - self._grid_width][y].get_name() == "pile":
+                            color_gradient = self.sim.values[x - self._grid_width][y].occupant.size * round(255 / MAX_PILE)
+                            QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
+                            self._grid[y][x].colors[:] = QUAD_STICK
 
-                elif self.trail == 1 and self.sim.values[x][y].trail == 0:
-                    self._grid[y][x].colors[:] = self.QUAD_WHITE
-
-                elif self.freq == 1 and self.sim.values[x][y].freq == 0:
-                    self._grid[y][x].colors[:] = self.QUAD_WHITE
+                        elif self.sim.values[x - self._grid_width][y].freq == 0:
+                            self._grid[y][x].colors[:] = self.QUAD_WHITE
                 else:
-                    self._grid[y][x].colors[:] = self.QUAD_WHITE
+                    if x < self._grid_width / 2:
+                        self._grid[y][x].colors[:] = (self.sim.values[x][y - self._grid_height].pher_level, 0,
+                                                      self.sim.values[x][y - self._grid_height].pher_level) * 4
 
+                        if self.sim.values[x][y - self._grid_height].get_name() == "ant":
+                            if self.sim.values[x][y - self._grid_height].occupant.carrying == 1:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
+                            else:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT
+                        elif self.sim.values[x][y - self._grid_height].get_name() == "pile":
+                            color_gradient = self.sim.values[x][y - self._grid_height].occupant.size * round(255 / MAX_PILE)
+                            QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
+                            self._grid[y][x].colors[:] = QUAD_STICK
 
+                        elif self.sim.values[x][y - self._grid_height].pher_level == 0:
+                            self._grid[y][x].colors[:] = self.QUAD_WHITE
+
+                    else:
+                        if self.sim.values[x - self._grid_width][y - self._grid_height].get_name() == "ant":
+                            if self.sim.values[x - self._grid_width][y - self._grid_height].occupant.carrying == 1:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
+                            else:
+                                self._grid[y][x].colors[:] = self.QUAD_ANT
+                        elif self.sim.values[x - self._grid_width][y - self._grid_height].get_name() == "pile":
+                            color_gradient = self.sim.values[x - self._grid_width][y - self._grid_height].occupant.size * round(
+                                255 / MAX_PILE)
+                            QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
+                            self._grid[y][x].colors[:] = QUAD_STICK
+                        else:
+                            self._grid[y][x].colors[:] = self.QUAD_WHITE
+
+    # def _update_graphics(self):
+    #     for y in range(self._grid_height):
+    #         for x in range(self._grid_width):
+    #             if self.pheromone == 1:
+    #                 self._grid[y][x].colors[:] = (self.sim.values[x][y].pher_level, 0, self.sim.values[x][y].pher_level) * 4
+    #             if self.trail == 1:
+    #                 self._grid[y][x].colors[:] = (self.sim.values[x][y].trail, self.sim.values[x][y].trail // 2, 0) * 4
+    #             if self.freq == 1:
+    #                 fcolor = self.sim.values[x][y].freq
+    #                 self._grid[y][x].colors[:] = (255 - fcolor, 255 - fcolor, 255 - fcolor) * 4
+    #
+    #             if self.sim.values[x][y].get_name() == "ant":
+    #                 if self.sim.values[x][y].occupant.carrying == 1:
+    #                     self._grid[y][x].colors[:] = self.QUAD_ANT_STICK
+    #                 else:
+    #                     self._grid[y][x].colors[:] = self.QUAD_ANT
+    #             elif self.sim.values[x][y].get_name() == "pile":
+    #                 color_gradient = self.sim.values[x][y].occupant.size * round(255 / MAX_PILE)
+    #                 QUAD_STICK = (255 - color_gradient, 255 - color_gradient, color_gradient) * 4
+    #                 self._grid[y][x].colors[:] = QUAD_STICK
+    #
+    #             elif self.pheromone == 1 and self.sim.values[x][y].pher_level == 0:
+    #                 self._grid[y][x].colors[:] = self.QUAD_WHITE
+    #
+    #             elif self.trail == 1 and self.sim.values[x][y].trail == 0:
+    #                 self._grid[y][x].colors[:] = self.QUAD_WHITE
+    #
+    #             elif self.freq == 1 and self.sim.values[x][y].freq == 0:
+    #                 self._grid[y][x].colors[:] = self.QUAD_WHITE
+    #             elif self.pheromone == 0 and self.trail == 0 and self.freq == 0:
+    #                 self._grid[y][x].colors[:] = self.QUAD_WHITE
 
 
 if __name__ == '__main__':
     move_type = "von"
     pick_type = "von"
-    map_x = 30
-    map_y = 30
+    map_x = 90
+    map_y = 90
     initial_ants = 30
     initial_sticks = 30
     backwards = 0  # 1-> can go backwards || 0 -> cannot go backwards
@@ -727,9 +792,9 @@ if __name__ == '__main__':
     pheromone = 2  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
-    vis = Grid2D(aas, 5, trail=0, pheromone=0, freq=0)
+    vis = Grid2D(aas, 5, trail=1, pheromone=0, freq=0)
 
     display = simcx.Display(interval=0.1)
     display.add_simulator(aas)
     display.add_visual(vis)
-simcx.run()
+    simcx.run()
