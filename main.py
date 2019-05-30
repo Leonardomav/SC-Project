@@ -65,20 +65,21 @@ class Place:
 
         if pick_neig == 1:
             for i in range(2):
-                if self.neighbour[i].neighbour[2] is not None:
-                    if self.neighbour[i].neighbour[2].get_name() == "pile" and MAX_STICK >= self.neighbour[i].neighbour[
-                        2].occupant.size >= MIN_STICK:
-                        available_sticks.append(i + 4)
-                    if self.neighbour[i].neighbour[2].get_name() == "pile" and MIN_STICK <= self.neighbour[i].neighbour[
-                        2].occupant.size < MAX_PILE:
-                        available_piles.append(i + 4)
-                if self.neighbour[i].neighbour[3] is not None:
-                    if self.neighbour[i].neighbour[3].get_name() == "pile" and MAX_STICK >= self.neighbour[i].neighbour[
-                        3].occupant.size >= MIN_STICK:
-                        available_sticks.append(i + 6)
-                    if self.neighbour[i].neighbour[3].get_name() == "pile" and MIN_STICK <= self.neighbour[i].neighbour[
-                        3].occupant.size < MAX_PILE:
-                        available_piles.append(i + 6)
+                if self.neighbour[i] != None:
+                    if self.neighbour[i].neighbour[2] is not None:
+                        if self.neighbour[i].neighbour[2].get_name() == "pile" and MAX_STICK >= self.neighbour[i].neighbour[
+                            2].occupant.size >= MIN_STICK:
+                            available_sticks.append(i + 4)
+                        if self.neighbour[i].neighbour[2].get_name() == "pile" and MIN_STICK <= self.neighbour[i].neighbour[
+                            2].occupant.size < MAX_PILE:
+                            available_piles.append(i + 4)
+                    if self.neighbour[i].neighbour[3] is not None:
+                        if self.neighbour[i].neighbour[3].get_name() == "pile" and MAX_STICK >= self.neighbour[i].neighbour[
+                            3].occupant.size >= MIN_STICK:
+                            available_sticks.append(i + 6)
+                        if self.neighbour[i].neighbour[3].get_name() == "pile" and MIN_STICK <= self.neighbour[i].neighbour[
+                            3].occupant.size < MAX_PILE:
+                            available_piles.append(i + 6)
 
         if move_neig == 1:
             for i in range(2):
@@ -775,8 +776,8 @@ class Grid2D(simcx.Visual):
 
 
 if __name__ == '__main__':
-    move_type = "von"
-    pick_type = "von"
+    move_type = "moore"
+    pick_type = "moore"
     map_x = 30
     map_y = 30
     initial_ants = 50
@@ -784,8 +785,8 @@ if __name__ == '__main__':
     backwards = 0  # 1-> can go backwards || 0 -> cannot go backwards
     warp = 0  # 1-> map warps || 0 -> map does not warp
     zones = None
-    # zones = [[0, 0, 0, 0, 0, 0, 20, 0, 0], [0, 0, 20, 0, 0, 0, 0, 0, 0]]
-    pheromone = 2  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
+    # zones = [[15, 0, 15, 0, 0, 0, 15, 0, 15], [0, 0, 0, 0, 90, 0, 0, 0, 0]]
+    pheromone = 0  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
     vis = Grid2D(aas, 5, trail=1, pheromone=0, freq=0)
