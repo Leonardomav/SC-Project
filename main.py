@@ -790,21 +790,12 @@ if __name__ == '__main__':
     zones = None
     #zones = [[0, 0, 0, 00, 100, 0, 0, 0, 0], [0, 0, 0, 0, 50, 0, 0, 0, 0]]
 
-    map_x = 30
-    map_y = 30
-    initial_ants = 22
-    initial_sticks = 22
-    backwards = 0  # 1-> can go backwards || 0 -> cannot go backwards
-    warp = 0  # 1-> map warps || 0 -> map does not warp
-    zones = None
-    zones = [[0, 0, 0, 0, 50, 0, 0, 0, 0], [0, 0, 0, 0, 50, 0, 0, 0, 0]]
-
     pheromone = 0  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
     vis = Grid2D(aas, 5, trail=1, pheromone=0, freq=0)
 
-    display = simcx.Display(interval=0.01)
+    display = simcx.Display(interval=0.05)
     display.add_simulator(aas)
     display.add_visual(vis)
     simcx.run()
