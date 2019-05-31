@@ -238,6 +238,8 @@ class AntsAndSticks(simcx.Simulator):
 
     def check_pher(self, moves, x, y):
         random.shuffle(moves)
+        dir = random.choice(moves)
+
         for i in range(len(moves)):
             if moves[i] == 0:
                 this_y = y
@@ -778,6 +780,7 @@ class Grid2D(simcx.Visual):
 if __name__ == '__main__':
     move_type = "von"
     pick_type = "moore"
+
     map_x = 45
     map_y = 45
     initial_ants = 50
@@ -786,6 +789,16 @@ if __name__ == '__main__':
     warp = 1  # 1-> map warps || 0 -> map does not warp
     zones = None
     #zones = [[0, 0, 0, 00, 100, 0, 0, 0, 0], [0, 0, 0, 0, 50, 0, 0, 0, 0]]
+
+    map_x = 30
+    map_y = 30
+    initial_ants = 22
+    initial_sticks = 22
+    backwards = 0  # 1-> can go backwards || 0 -> cannot go backwards
+    warp = 0  # 1-> map warps || 0 -> map does not warp
+    zones = None
+    zones = [[0, 0, 0, 0, 50, 0, 0, 0, 0], [0, 0, 0, 0, 50, 0, 0, 0, 0]]
+
     pheromone = 0  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
