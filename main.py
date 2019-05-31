@@ -600,7 +600,7 @@ class AntsAndSticks(simcx.Simulator):
         file.write('\n')
         file.close()
 
-        if (available_sticks > 0 or (available_piles > 0 and carrying_ants > 0)) and step_count < 5000:
+        if (available_sticks > 0 or (available_piles > 0 and carrying_ants > 0)) and step_count < 2000:
             moved = []
             rand_x = list(range(0, self.height))
             rand_y = list(range(0, self.width))
@@ -776,22 +776,22 @@ class Grid2D(simcx.Visual):
 
 
 if __name__ == '__main__':
-    move_type = "moore"
+    move_type = "von"
     pick_type = "moore"
-    map_x = 30
-    map_y = 30
+    map_x = 45
+    map_y = 45
     initial_ants = 50
     initial_sticks = 50
-    backwards = 0  # 1-> can go backwards || 0 -> cannot go backwards
-    warp = 0  # 1-> map warps || 0 -> map does not warp
+    backwards = 1  # 1-> can go backwards || 0 -> cannot go backwards
+    warp = 1  # 1-> map warps || 0 -> map does not warp
     zones = None
-    # zones = [[15, 0, 15, 0, 0, 0, 15, 0, 15], [0, 0, 0, 0, 90, 0, 0, 0, 0]]
+    #zones = [[0, 0, 0, 00, 100, 0, 0, 0, 0], [0, 0, 0, 0, 50, 0, 0, 0, 0]]
     pheromone = 0  # -> 0 no pheromone | 1 -> pheromone allways | 2 -> pheromone only when carrying
 
     aas = AntsAndSticks(move_type, pick_type, map_x, map_y, initial_ants, initial_sticks, backwards, warp, zones, pheromone)
     vis = Grid2D(aas, 5, trail=1, pheromone=0, freq=0)
 
-    display = simcx.Display(interval=0.05)
+    display = simcx.Display(interval=0.01)
     display.add_simulator(aas)
     display.add_visual(vis)
     simcx.run()
